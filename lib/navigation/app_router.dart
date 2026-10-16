@@ -7,6 +7,8 @@ import '../features/patient/views/home_paziente_screen.dart';
 
 import '../features/auth/viewmodels/auth_viewmodel.dart';
 
+import '../features/doctor/views/home_dottore_screen.dart';
+
 import '../features/auth/views/login_screen.dart';
 // import '../data/repositories/auth_repository.dart';
 
@@ -43,10 +45,7 @@ class AppRouter extends ConsumerWidget {
               case 'paziente':
                 return const HomePazienteScreen();
               case 'dottore':
-                return const _PlaceholderScreen(
-                  title: 'Area medico',
-                  icon: Icons.medical_services_outlined,
-                );
+                return const HomeDottoreScreen();
               default:
                 return const _ErrorScreen();
             }
@@ -78,38 +77,6 @@ class _ErrorScreen extends StatelessWidget {
         child: Text(
           'Impossibile caricare il profilo. Riprova più tardi.',
           textAlign: TextAlign.center,
-        ),
-      ),
-    );
-  }
-}
-
-class _PlaceholderScreen extends StatelessWidget {
-  final String title;
-  final IconData icon;
-
-  const _PlaceholderScreen({
-    required this.title,
-    required this.icon,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      body: Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, size: 64, color: const Color(0xFF2196F3)),
-            const SizedBox(height: 16),
-            Text(
-              title,
-              style: const TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ],
         ),
       ),
     );

@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -24,19 +23,41 @@ class _PrenotaVisitaScreenState
       '${data.month.toString().padLeft(2, '0')}-'
       '${data.day.toString().padLeft(2, '0')}';
 
+  bool _isWeekend(DateTime data) =>
+      data.weekday == DateTime.saturday ||
+      data.weekday == DateTime.sunday;
+
+  DateTime _prossimoGiornoLavorativo(DateTime data) {
+    var risultato = DateTime(data.year, data.month, data.day);
+
+    while (_isWeekend(risultato)) {
+      risultato = risultato.add(const Duration(days: 1));
+    }
+
+    return risultato;
+  }
+
   Future<void> _selezionaData() async {
-    final oggi = DateUtils.dateOnly(DateTime.now());
+    final adesso = DateTime.now();
+    final oggi = DateTime(adesso.year, adesso.month, adesso.day);
+
+    final dataBase = _data == null || _data!.isBefore(oggi)
+        ? oggi
+        : _data!;
 
     final scelta = await showDatePicker(
       context: context,
-      initialDate: _data ?? oggi,
+      initialDate: _prossimoGiornoLavorativo(dataBase),
       firstDate: oggi,
       lastDate: DateTime(oggi.year + 1, 12, 31),
+      selectableDayPredicate: (data) => !_isWeekend(data),
       helpText: 'Seleziona il giorno della visita',
+      cancelText: 'Annulla',
+      confirmText: 'Conferma',
       locale: const Locale('it', 'IT'),
     );
 
-    if (scelta != null) {
+    if (scelta != null && mounted) {
       setState(() {
         _data = scelta;
         _ora = null;
@@ -45,26 +66,40 @@ class _PrenotaVisitaScreenState
   }
 
   Future<void> _prenota() async {
-    if (_idDottore == null || _data == null || _ora == null) return;
+    if (_idDottore == null || _data == null || _ora == null) {
+      return;
+    }
 
     setState(() => _prenotazioneInCorso = true);
 
+    final idDottore = _idDottore!;
+    final data = _formattaData(_data!);
+    final ora = _ora!;
+
     try {
       await ref.read(visiteRepositoryProvider).prenotaVisita(
-            idDottore: _idDottore!,
-            data: _formattaData(_data!),
-            ora: _ora!,
+            idDottore: idDottore,
+            data: data,
+            ora: ora,
           );
 
-      ref.invalidate(orariDisponibiliProvider((
-        dottore: _idDottore!,
-        data: _formattaData(_data!),
-      )));
+      // Aggiorna la lista delle visite del paziente.
+      ref.invalidate(visitePazienteProvider);
+
+      // Aggiorna gli orari per il medico e la data scelti.
+      ref.invalidate(
+        orariDisponibiliProvider((
+          dottore: idDottore,
+          data: data,
+        )),
+      );
 
       if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Visita prenotata con successo.')),
+        const SnackBar(
+          content: Text('Visita prenotata con successo.'),
+        ),
       );
 
       Navigator.pop(context, true);
@@ -93,14 +128,18 @@ class _PrenotaVisitaScreenState
     final data = _data == null ? null : _formattaData(_data!);
 
     final orari = _idDottore != null && data != null
-        ? ref.watch(orariDisponibiliProvider((
-            dottore: _idDottore!,
-            data: data,
-          )))
+        ? ref.watch(
+            orariDisponibiliProvider((
+              dottore: _idDottore!,
+              data: data,
+            )),
+          )
         : null;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Prenota una visita')),
+      appBar: AppBar(
+        title: const Text('Prenota una visita'),
+      ),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(20),
@@ -211,14 +250,12 @@ class _PrenotaVisitaScreenState
                       spacing: 10,
                       runSpacing: 10,
                       children: lista.map((ora) {
-                        final selezionato = _ora == ora;
-
                         return ChoiceChip(
                           label: Text(ora),
-                          selected: selezionato,
-                          onSelected: (valore) {
+                          selected: _ora == ora,
+                          onSelected: (selezionato) {
                             setState(() {
-                              _ora = valore ? ora : null;
+                              _ora = selezionato ? ora : null;
                             });
                           },
                           selectedColor: const Color(0xFFBBDEFB),
@@ -238,8 +275,13 @@ class _PrenotaVisitaScreenState
                       ? null
                       : _prenota,
                   child: _prenotazioneInCorso
-                      ? const CircularProgressIndicator(
-                          color: Colors.white,
+                      ? const SizedBox(
+                          width: 22,
+                          height: 22,
+                          child: CircularProgressIndicator(
+                            color: Colors.white,
+                            strokeWidth: 2,
+                          ),
                         )
                       : const Text('Conferma prenotazione'),
                 ),
