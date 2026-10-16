@@ -1,74 +1,87 @@
+
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import 'package:flutter_localizations/flutter_localizations.dart';
+
 import 'firebase_options.dart';
+import 'navigation/app_router.dart';
 
 Future<void> main() async {
   // Inizializza Flutter prima di utilizzare Firebase.
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Carica la configurazione corretta per Android o iOS.
+  // Connette l'app al progetto Firebase configurato.
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
 
-  runApp(const MyApp());
+  // Rende Riverpod disponibile in tutta l'applicazione.
+  runApp(
+    const ProviderScope(
+      child: MediCare(),
+    ),
+  );
 }
 
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+class MediCare extends StatelessWidget {
+  const MediCare({super.key});
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'MediCare',
       debugShowCheckedModeBanner: false,
+
+      localizationsDelegates: const [
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+        supportedLocales: const [
+          Locale('it', 'IT'),
+          Locale('en', 'US'),
+        ],
+      // Tema grafico condiviso da tutte le schermate.
       theme: ThemeData(
         useMaterial3: true,
         colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF2196C9),
+          seedColor: const Color(0xFF2196F3),
           brightness: Brightness.light,
         ),
-        scaffoldBackgroundColor: const Color(0xFFF5FAFD),
+        scaffoldBackgroundColor: const Color(0xFFF5F9FC),
         appBarTheme: const AppBarTheme(
-          backgroundColor: Color(0xFFF5FAFD),
-          foregroundColor: Color(0xFF173B50),
-          centerTitle: false,
+          backgroundColor: Color(0xFFF5F9FC),
+          foregroundColor: Color(0xFF17324D),
           elevation: 0,
+          centerTitle: false,
         ),
-      ),
-
-      // Schermata temporanea, da sostituire con il login.
-      home: const Scaffold(
-        body: Center(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                Icons.local_hospital_outlined,
-                size: 64,
-                color: Color(0xFF2196C9),
-              ),
-              SizedBox(height: 16),
-              Text(
-                'MediCare',
-                style: TextStyle(
-                  fontSize: 28,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF173B50),
-                ),
-              ),
-              SizedBox(height: 8),
-              Text(
-                'Applicazione inizializzata',
-                style: TextStyle(
-                  fontSize: 16,
-                  color: Color(0xFF607D8B),
-                ),
-              ),
-            ],
+        inputDecorationTheme: InputDecorationTheme(
+          filled: true,
+          fillColor: Colors.white,
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: const BorderSide(
+              color: Color(0xFFD9E5EE),
+            ),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: const BorderSide(
+              color: Color(0xFF2196F3),
+              width: 1.5,
+            ),
           ),
         ),
       ),
+
+      // Decide quale schermata mostrare in base alla sessione
+      // Firebase e al ruolo salvato in Firestore.
+      home: const AppRouter(),
     );
   }
 }
